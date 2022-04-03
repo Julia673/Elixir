@@ -1,0 +1,86 @@
+ # calculation of additional fuel
+  def get_fuel_all_mass(mass_fuel, _, sum_fuel, _) when mass_fuel <= 0 , do: sum_fuel
+  def get_fuel_all_mass(mass_fuel, gravity, sum_fuel, type) do
+
+    new_fuel =
+      case type do
+        "land" ->
+          trunc(mass_fuel * gravity * 0.033 - 42)
+
+        "launch" ->
+          trunc(mass_fuel * gravity * 0.042 - 33)
+
+          _ -> 0
+      end
+
+    sum = sum_fuel +
+      case new_fuel do
+        new_fuel when new_fuel >= 0 -> new_fuel
+        _ -> 0
+      end
+
+    get_fuel_all_mass(new_fuel, gravity, sum, type)
+
+  end
+
+  # data validation
+def check_gravity(gravity) do
+
+  case gravity do
+    {:land, gravity} -> gravity
+    {:launch, gravity} -> gravity
+    _ -> 0
+  end
+
+end
+  # calculation of the total mass of fuel
+ def get_fuel(mass, gravity, type) do
+
+  case type do
+    "land" ->
+      fuel = trunc(mass * gravity * 0.033 - 42)
+      get_fuel_all_mass(fuel, gravity, fuel, "land")
+
+    "launch" ->
+      fuel = trunc(mass * gravity * 0.042 - 33)
+      get_fuel_all_mass(fuel, gravity, fuel, "launch")
+
+      _ -> 0
+  end
+
+ end
+
+  # calculation of the total mass of the ship together with the fuel for the initial launch
+ def get_fuel_all(_, mass, gravities, index) when index == length(gravities)-1 , do: mass
+ def get_fuel_all(gravity, mass, gravities, index) do
+
+    case gravity do
+      {:land, gravity} ->
+        new_mass = get_fuel(mass, gravity, "land")
+
+        get_fuel_all(gravities|> Enum.at(index+1), mass + new_mass, gravities, index+1)
+      {:launch, gravity} ->
+        new_mass = get_fuel(mass, gravity, "launch")
+
+        get_fuel_all(gravities|> Enum.at(index+1), mass + new_mass, gravities, index+1)
+      _ -> 0
+    end
+
+ end
+
+  # main function
+  # the calculation is based on the finish landing
+  # the function returns 0 in the case of non-standard input data
+  def get_fuel_for_fly(mass, gravities) do
+
+    gravities = gravities|> List.wrap()|> Enum.reverse()
+    mass_all = get_fuel_all(gravities|> Enum.at(0), mass, gravities, 0)
+    start_fuel = get_fuel(mass_all, check_gravity(gravities|> List.wrap()|> List.first()), "launch")
+
+    case  start_fuel do
+      start_fuel when start_fuel > 0 ->
+        (mass_all + start_fuel) - mass
+      _ -> 0
+    end
+
+  end
